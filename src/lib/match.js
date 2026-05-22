@@ -15,8 +15,20 @@ export const shuffle = (arr) => {
 
 // Sorteia `count` perguntas tentando ter ao menos uma de cada tipo,
 // completa o restante aleatoriamente, e embaralha a ordem final.
-export function pickQuestions(count = 5) {
-  const byType = QUESTIONS.reduce((acc, q) => {
+//
+// `excludeIds`: array ou Set de IDs já usados (nas partidas anteriores
+// da mesma campanha). Garantia: nenhuma das `count` perguntas retornadas
+// estará em `excludeIds`, nem se repetirá entre si.
+//
+// Se o filtro deixar o pool menor que `count` (banco esgotado), faz
+// fallback ignorando o exclude — o jogo continua jogável.
+export function pickQuestions(count = 5, excludeIds) {
+  const exclude = excludeIds instanceof Set ? excludeIds : new Set(excludeIds || []);
+
+  let pool = QUESTIONS.filter((q) => !exclude.has(q.id));
+  if (pool.length < count) pool = QUESTIONS; // fallback
+
+  const byType = pool.reduce((acc, q) => {
     (acc[q.type] = acc[q.type] || []).push(q);
     return acc;
   }, {});
@@ -25,19 +37,19 @@ export function pickQuestions(count = 5) {
   const picked = [];
   const seen = new Set();
 
-  // 1 de cada tipo (até esgotar tipos disponíveis)
+  // 1 de cada tipo (até esgotar tipos disponíveis ou bater o count)
   for (const t of types) {
     if (picked.length >= count) break;
-    const pool = shuffle(byType[t]);
-    const q = pool.find((x) => !seen.has(x.id));
+    const shuffled = shuffle(byType[t]);
+    const q = shuffled.find((x) => !seen.has(x.id));
     if (q) {
       picked.push(q);
       seen.add(q.id);
     }
   }
 
-  // Completa com perguntas aleatórias do banco inteiro
-  const remaining = shuffle(QUESTIONS.filter((q) => !seen.has(q.id)));
+  // Completa com perguntas aleatórias do pool filtrado
+  const remaining = shuffle(pool.filter((q) => !seen.has(q.id)));
   while (picked.length < count && remaining.length) {
     const q = remaining.shift();
     picked.push(q);

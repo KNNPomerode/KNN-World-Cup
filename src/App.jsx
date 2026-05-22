@@ -31,6 +31,9 @@ export default function App() {
   // Adversários sorteados para as fases simuladas (chave: matchIndex)
   const [simulatedOpponents, setSimulatedOpponents] = useState({});
 
+  // IDs de perguntas já usadas na campanha (não se repetem entre partidas)
+  const [usedQuestionIds, setUsedQuestionIds] = useState(() => new Set());
+
   // Estado da partida atual
   const [questions, setQuestions]         = useState([]);
   const [currentQ, setCurrentQ]           = useState(0);
@@ -73,7 +76,14 @@ export default function App() {
   }
 
   function startMatch() {
-    setQuestions(pickQuestions(5));
+    // Marca perguntas da partida anterior como usadas — garante que nenhuma
+    // pergunta se repita ao longo da campanha inteira (8 partidas × 5 = 40,
+    // bem dentro das 350 disponíveis).
+    const newUsedIds = new Set(usedQuestionIds);
+    questions.forEach((q) => newUsedIds.add(q.id));
+    setUsedQuestionIds(newUsedIds);
+
+    setQuestions(pickQuestions(5, newUsedIds));
     setCurrentQ(0);
     setBrazilGoals(0);
     setOpponentGoals(0);
@@ -195,6 +205,8 @@ export default function App() {
     setPhase('welcome');
     setMatchIndex(0);
     setSimulatedOpponents({});
+    setUsedQuestionIds(new Set());
+    setQuestions([]);
     setStats(emptyStats);
   }
 
