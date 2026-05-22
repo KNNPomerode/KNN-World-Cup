@@ -12,7 +12,7 @@ export const TEAMS = {
   URU: { name: 'Uruguai',         short: 'URU', flag: '🇺🇾', rating: 83, confederation: 'CONMEBOL' },
   ECU: { name: 'Equador',         short: 'ECU', flag: '🇪🇨', rating: 78, confederation: 'CONMEBOL' },
   PAR: { name: 'Paraguai',        short: 'PAR', flag: '🇵🇾', rating: 72, confederation: 'CONMEBOL' },
-  CHI: { name: 'Chile',           short: 'CHI', flag: '🇨🇱', rating: 72, confederation: 'CONMEBOL' },
+  BOL: { name: 'Bolívia',         short: 'BOL', flag: '🇧🇴', rating: 68, confederation: 'CONMEBOL' },
 
   // ── UEFA ──────────────────────────────────────────────────────────────
   FRA: { name: 'França',          short: 'FRA', flag: '🇫🇷', rating: 92, confederation: 'UEFA' },
@@ -42,7 +42,7 @@ export const TEAMS = {
   CIV: { name: 'Costa do Marfim', short: 'CIV', flag: '🇨🇮', rating: 75, confederation: 'CAF' },
   CMR: { name: 'Camarões',        short: 'CMR', flag: '🇨🇲', rating: 74, confederation: 'CAF' },
   TUN: { name: 'Tunísia',         short: 'TUN', flag: '🇹🇳', rating: 73, confederation: 'CAF' },
-  MLI: { name: 'Mali',            short: 'MLI', flag: '🇲🇱', rating: 70, confederation: 'CAF' },
+  CPV: { name: 'Cabo Verde',      short: 'CPV', flag: '🇨🇻', rating: 70, confederation: 'CAF' },
 
   // ── AFC ───────────────────────────────────────────────────────────────
   JPN: { name: 'Japão',           short: 'JPN', flag: '🇯🇵', rating: 78, confederation: 'AFC' },
@@ -51,7 +51,7 @@ export const TEAMS = {
   AUS: { name: 'Austrália',       short: 'AUS', flag: '🇦🇺', rating: 73, confederation: 'AFC' },
   QAT: { name: 'Catar',           short: 'QAT', flag: '🇶🇦', rating: 71, confederation: 'AFC' },
   KSA: { name: 'Arábia Saudita',  short: 'KSA', flag: '🇸🇦', rating: 70, confederation: 'AFC' },
-  IRQ: { name: 'Iraque',          short: 'IRQ', flag: '🇮🇶', rating: 68, confederation: 'AFC' },
+  JOR: { name: 'Jordânia',        short: 'JOR', flag: '🇯🇴', rating: 70, confederation: 'AFC' },
   UZB: { name: 'Uzbequistão',     short: 'UZB', flag: '🇺🇿', rating: 67, confederation: 'AFC' },
 
   // ── CONCACAF (anfitriões + classificados) ─────────────────────────────
@@ -68,23 +68,28 @@ export const TEAMS = {
 
 // ════════════════════════════════════════════════════════════════════════════
 // 🏆 GROUPS — 12 grupos da Copa 2026 (A → L), 4 seleções cada.
-//    O Grupo C é o do Brasil; os demais são uma composição plausível.
-//    ✏️ Para ajustar conforme o sorteio oficial: edite as chaves aqui.
+//
+// O Grupo C é o oficial confirmado (Brasil/Marrocos/Escócia/Haiti).
+// Os demais são uma estimativa plausível: respeita pots por rating + regra
+// "no máximo 2 UEFA por grupo, sem duas seleções da mesma outra confederação".
+//
+// ⚠️ Não é o sorteio oficial palavra por palavra. Se quiser ajustar,
+//    edite as chaves aqui — `simulateOpponent` continua funcionando.
 // ════════════════════════════════════════════════════════════════════════════
 
 export const GROUPS = {
-  A: ['USA', 'ITA', 'JPN', 'TUN'],
-  B: ['MEX', 'URU', 'ECU', 'NZL'],
+  A: ['MEX', 'ITA', 'CMR', 'NZL'],
+  B: ['CAN', 'CRO', 'ECU', 'UZB'],
   C: ['BRA', 'MAR', 'SCO', 'HAI'],
-  D: ['CAN', 'CRO', 'TUR', 'CHI'],
-  E: ['ARG', 'COL', 'NGA', 'QAT'],
-  F: ['FRA', 'DEN', 'EGY', 'KSA'],
-  G: ['ESP', 'SUI', 'KOR', 'MLI'],
-  H: ['ENG', 'SRB', 'IRN', 'CRC'],
-  I: ['POR', 'AUT', 'ALG', 'JAM'],
-  J: ['NED', 'POL', 'CIV', 'IRQ'],
-  K: ['GER', 'NOR', 'CMR', 'UZB'],
-  L: ['BEL', 'SEN', 'AUS', 'PAR'],
+  D: ['USA', 'URU', 'TUR', 'QAT'],
+  E: ['ARG', 'NOR', 'EGY', 'JOR'],
+  F: ['FRA', 'DEN', 'KOR', 'CPV'],
+  G: ['ENG', 'SUI', 'NGA', 'KSA'],
+  H: ['ESP', 'SRB', 'ALG', 'CRC'],
+  I: ['POR', 'AUT', 'IRN', 'PAR'],
+  J: ['NED', 'POL', 'CIV', 'BOL'],
+  K: ['GER', 'SEN', 'JPN', 'JAM'],
+  L: ['BEL', 'COL', 'TUN', 'AUS'],
 };
 
 // Helper: lista plana de todas as chaves de times.

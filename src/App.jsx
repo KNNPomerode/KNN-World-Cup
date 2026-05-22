@@ -21,9 +21,12 @@ const REVEAL_DELAY_MS = 1700;
 
 const emptyStats = { correct: 0, total: 0, wins: 0, goalsFor: 0, goalsAgainst: 0 };
 
+const DEFAULT_COACH = 'Carlo Ancelotti';
+
 export default function App() {
   const [phase, setPhase] = useState('welcome');
   const [matchIndex, setMatchIndex] = useState(0);
+  const [coachName, setCoachName] = useState(DEFAULT_COACH);
 
   // Adversários sorteados para as fases simuladas (chave: matchIndex)
   const [simulatedOpponents, setSimulatedOpponents] = useState({});
@@ -95,21 +98,25 @@ export default function App() {
 
     if (isCorrect) {
       nextCorrect += 1;
-      const outcome = resolveAnswer(rating); // 'goal' | 'chance'
 
-      // Decisão de design: chance pendente vira gol garantido + a roleta nova
-      // ainda roda em cima do mesmo acerto. Acertos consecutivos podem render 2 gols.
+      // Regra de gol: 1 acerto = no máximo 1 gol.
+      //   • Se há chance pendente: o acerto a converte em gol (sem nova roleta).
+      //   • Caso contrário: roda a roleta `resolveAnswer` → 'goal' ou 'chance'.
+      // Contra times fortes (mais 'chance'), 2 acertos são tipicamente
+      // necessários pra balançar a rede.
       if (pendingChance) {
-        nextBrazil += 1;        // converte a chance anterior
-        nextPending = false;
-      }
-      if (outcome === 'goal') {
         nextBrazil += 1;
+        nextPending = false;
         revealAs = 'goal';
       } else {
-        nextPending = true;
-        // Se a chance anterior virou gol agora, mostramos 'goal' (mais satisfatório)
-        revealAs = pendingChance ? 'goal' : 'chance';
+        const outcome = resolveAnswer(rating); // 'goal' | 'chance'
+        if (outcome === 'goal') {
+          nextBrazil += 1;
+          revealAs = 'goal';
+        } else {
+          nextPending = true;
+          revealAs = 'chance';
+        }
       }
     } else {
       // Erro: chance pendente some + adversário tenta marcar
@@ -197,7 +204,12 @@ export default function App() {
       <style>{STYLES_CSS}</style>
 
       {phase === 'welcome' && (
-        <WelcomeScreen onStart={startCampaign} journey={journey} />
+        <WelcomeScreen
+          onStart={startCampaign}
+          journey={journey}
+          coachName={coachName}
+          onCoachChange={(v) => setCoachName(v || DEFAULT_COACH)}
+        />
       )}
 
       {phase === 'preMatch' && opponent && (

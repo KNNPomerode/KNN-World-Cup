@@ -1,7 +1,15 @@
-import { ChevronRight, Volleyball } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronRight, Volleyball, Table2 } from 'lucide-react';
 import Ticker from '../Ticker.jsx';
+import GroupsTable from '../GroupsTable.jsx';
 
-export default function WelcomeScreen({ onStart, journey }) {
+export default function WelcomeScreen({ onStart, journey, coachName, onCoachChange }) {
+  const [showGroups, setShowGroups] = useState(false);
+
+  // Edição local pra permitir input vazio sem aplicar o default em cada keystroke
+  const [draftCoach, setDraftCoach] = useState(coachName);
+  const commitCoach = () => onCoachChange(draftCoach.trim());
+
   return (
     <div className="paper min-h-screen flex flex-col relative overflow-hidden">
       <div className="absolute inset-4 border-2 border-stone-900 pointer-events-none" />
@@ -32,11 +40,21 @@ export default function WelcomeScreen({ onStart, journey }) {
               <div className="f-display text-7xl leading-none">{journey.name}</div>
               <div className="f-display text-5xl leading-none" style={{ color: '#D62828' }}>{journey.year}</div>
               <div className="f-serif-i mt-1 text-stone-700">{journey.location}</div>
-              {journey.coach && (
-                <div className="f-mono text-[10px] uppercase tracking-widest mt-3 text-stone-600">
-                  coached by <span className="font-bold text-stone-900">{journey.coach}</span>
-                </div>
-              )}
+
+              {/* Treinador editável */}
+              <div className="f-mono text-[10px] uppercase tracking-widest mt-3 text-stone-600 flex items-center gap-2 flex-wrap">
+                <span>coached by</span>
+                <input
+                  type="text"
+                  value={draftCoach}
+                  onChange={(e) => setDraftCoach(e.target.value)}
+                  onBlur={commitCoach}
+                  onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                  placeholder="Carlo Ancelotti"
+                  maxLength={40}
+                  className="bg-transparent border-b-2 border-stone-900/40 hover:border-stone-900 focus:border-stone-900 text-stone-900 font-bold uppercase tracking-widest px-1 outline-none w-48 transition-colors"
+                />
+              </div>
             </div>
 
             <div className="anim-slide-up stagger-4 mt-6 p-4 border-2 border-stone-900" style={{ backgroundColor: '#FFD500' }}>
@@ -51,7 +69,7 @@ export default function WelcomeScreen({ onStart, journey }) {
 
       <Ticker items={['answer correctly', 'create chances', 'beat the odds', 'lift the trophy', 'speak english', 'become the hexa']} />
 
-      <div className="relative z-10 flex-1 flex items-center justify-center px-10 py-10">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-10 py-10 gap-4">
         <div className="text-center anim-slide-up stagger-5">
           <div className="f-serif-i text-lg text-stone-700 mb-4">When you're ready…</div>
           <button
@@ -66,6 +84,15 @@ export default function WelcomeScreen({ onStart, journey }) {
             {journey.matches.length} matches · group stage → final
           </div>
         </div>
+
+        {/* Botão pra abrir tabela dos grupos */}
+        <button
+          onClick={() => setShowGroups(true)}
+          className="anim-slide-up stagger-5 inline-flex items-center gap-2 px-5 py-2.5 border-2 border-stone-900 hover:bg-stone-900 hover:text-white transition"
+        >
+          <Table2 className="w-4 h-4" />
+          <span className="f-mono text-xs uppercase tracking-widest font-bold">ver tabela dos grupos</span>
+        </button>
       </div>
 
       <div className="relative z-10 px-10 pb-6">
@@ -75,6 +102,8 @@ export default function WelcomeScreen({ onStart, journey }) {
           <span>vol. 1</span>
         </div>
       </div>
+
+      {showGroups && <GroupsTable onClose={() => setShowGroups(false)} highlightGroup={journey.group} />}
     </div>
   );
 }

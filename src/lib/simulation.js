@@ -50,9 +50,10 @@ export function opponentGoalRoll(opponentRating) {
 // Se nenhum candidato cair na faixa, expande pra ±5 e tenta de novo.
 export function simulateOpponent(stage, excludedKeys = []) {
   const ranges = {
-    'Round of 16':  [70, 84],
-    'Quarterfinal': [76, 88],
-    'Semifinal':    [82, 92],
+    'Round of 32':  [65, 80],
+    'Round of 16':  [72, 86],
+    'Quarterfinal': [78, 90],
+    'Semifinal':    [83, 92],
     'FINAL':        [86, 92],
   };
 
