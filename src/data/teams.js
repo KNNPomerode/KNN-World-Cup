@@ -1,6 +1,7 @@
 // ════════════════════════════════════════════════════════════════════════════
-// 🌍 TEAMS — 48 seleções da Copa do Mundo 2026 com nota (0–100).
-//    Ratings são opiniões calibradas, não dados oficiais.
+// 🌍 TEAMS — 48 seleções classificadas para a Copa do Mundo 2026.
+//    Fonte dos grupos: sorteio oficial FIFA (5/dez/2025).
+//    Ratings são opiniões calibradas (0–100), não dados oficiais.
 //    ✏️ Para ajustar uma nota: edite o `rating` da chave.
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -12,7 +13,6 @@ export const TEAMS = {
   URU: { name: 'Uruguai',         short: 'URU', flag: '🇺🇾', rating: 83, confederation: 'CONMEBOL' },
   ECU: { name: 'Equador',         short: 'ECU', flag: '🇪🇨', rating: 78, confederation: 'CONMEBOL' },
   PAR: { name: 'Paraguai',        short: 'PAR', flag: '🇵🇾', rating: 72, confederation: 'CONMEBOL' },
-  BOL: { name: 'Bolívia',         short: 'BOL', flag: '🇧🇴', rating: 68, confederation: 'CONMEBOL' },
 
   // ── UEFA ──────────────────────────────────────────────────────────────
   FRA: { name: 'França',          short: 'FRA', flag: '🇫🇷', rating: 92, confederation: 'UEFA' },
@@ -22,26 +22,26 @@ export const TEAMS = {
   GER: { name: 'Alemanha',        short: 'GER', flag: '🇩🇪', rating: 85, confederation: 'UEFA' },
   NED: { name: 'Holanda',         short: 'NED', flag: '🇳🇱', rating: 85, confederation: 'UEFA' },
   BEL: { name: 'Bélgica',         short: 'BEL', flag: '🇧🇪', rating: 84, confederation: 'UEFA' },
-  ITA: { name: 'Itália',          short: 'ITA', flag: '🇮🇹', rating: 84, confederation: 'UEFA' },
   CRO: { name: 'Croácia',         short: 'CRO', flag: '🇭🇷', rating: 83, confederation: 'UEFA' },
-  DEN: { name: 'Dinamarca',       short: 'DEN', flag: '🇩🇰', rating: 81, confederation: 'UEFA' },
   SUI: { name: 'Suíça',           short: 'SUI', flag: '🇨🇭', rating: 80, confederation: 'UEFA' },
-  SRB: { name: 'Sérvia',          short: 'SRB', flag: '🇷🇸', rating: 79, confederation: 'UEFA' },
   AUT: { name: 'Áustria',         short: 'AUT', flag: '🇦🇹', rating: 79, confederation: 'UEFA' },
-  POL: { name: 'Polônia',         short: 'POL', flag: '🇵🇱', rating: 78, confederation: 'UEFA' },
   NOR: { name: 'Noruega',         short: 'NOR', flag: '🇳🇴', rating: 78, confederation: 'UEFA' },
+  SWE: { name: 'Suécia',          short: 'SWE', flag: '🇸🇪', rating: 76, confederation: 'UEFA' },
   TUR: { name: 'Turquia',         short: 'TUR', flag: '🇹🇷', rating: 77, confederation: 'UEFA' },
+  BIH: { name: 'Bósnia',          short: 'BIH', flag: '🇧🇦', rating: 73, confederation: 'UEFA' },
+  CZE: { name: 'Rep. Tcheca',     short: 'CZE', flag: '🇨🇿', rating: 73, confederation: 'UEFA' },
   SCO: { name: 'Escócia',         short: 'SCO', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', rating: 73, confederation: 'UEFA' },
 
   // ── CAF ───────────────────────────────────────────────────────────────
   MAR: { name: 'Marrocos',        short: 'MAR', flag: '🇲🇦', rating: 82, confederation: 'CAF' },
   SEN: { name: 'Senegal',         short: 'SEN', flag: '🇸🇳', rating: 78, confederation: 'CAF' },
   EGY: { name: 'Egito',           short: 'EGY', flag: '🇪🇬', rating: 76, confederation: 'CAF' },
-  NGA: { name: 'Nigéria',         short: 'NGA', flag: '🇳🇬', rating: 76, confederation: 'CAF' },
   ALG: { name: 'Argélia',         short: 'ALG', flag: '🇩🇿', rating: 75, confederation: 'CAF' },
   CIV: { name: 'Costa do Marfim', short: 'CIV', flag: '🇨🇮', rating: 75, confederation: 'CAF' },
-  CMR: { name: 'Camarões',        short: 'CMR', flag: '🇨🇲', rating: 74, confederation: 'CAF' },
+  GHA: { name: 'Gana',            short: 'GHA', flag: '🇬🇭', rating: 74, confederation: 'CAF' },
+  RSA: { name: 'África do Sul',   short: 'RSA', flag: '🇿🇦', rating: 74, confederation: 'CAF' },
   TUN: { name: 'Tunísia',         short: 'TUN', flag: '🇹🇳', rating: 73, confederation: 'CAF' },
+  COD: { name: 'RD Congo',        short: 'COD', flag: '🇨🇩', rating: 72, confederation: 'CAF' },
   CPV: { name: 'Cabo Verde',      short: 'CPV', flag: '🇨🇻', rating: 70, confederation: 'CAF' },
 
   // ── AFC ───────────────────────────────────────────────────────────────
@@ -52,44 +52,39 @@ export const TEAMS = {
   QAT: { name: 'Catar',           short: 'QAT', flag: '🇶🇦', rating: 71, confederation: 'AFC' },
   KSA: { name: 'Arábia Saudita',  short: 'KSA', flag: '🇸🇦', rating: 70, confederation: 'AFC' },
   JOR: { name: 'Jordânia',        short: 'JOR', flag: '🇯🇴', rating: 70, confederation: 'AFC' },
+  IRQ: { name: 'Iraque',          short: 'IRQ', flag: '🇮🇶', rating: 68, confederation: 'AFC' },
   UZB: { name: 'Uzbequistão',     short: 'UZB', flag: '🇺🇿', rating: 67, confederation: 'AFC' },
 
   // ── CONCACAF (anfitriões + classificados) ─────────────────────────────
   USA: { name: 'Estados Unidos',  short: 'USA', flag: '🇺🇸', rating: 77, confederation: 'CONCACAF', host: true },
   MEX: { name: 'México',          short: 'MEX', flag: '🇲🇽', rating: 76, confederation: 'CONCACAF', host: true },
   CAN: { name: 'Canadá',          short: 'CAN', flag: '🇨🇦', rating: 73, confederation: 'CONCACAF', host: true },
-  CRC: { name: 'Costa Rica',      short: 'CRC', flag: '🇨🇷', rating: 70, confederation: 'CONCACAF' },
-  JAM: { name: 'Jamaica',         short: 'JAM', flag: '🇯🇲', rating: 68, confederation: 'CONCACAF' },
+  PAN: { name: 'Panamá',          short: 'PAN', flag: '🇵🇦', rating: 68, confederation: 'CONCACAF' },
   HAI: { name: 'Haiti',           short: 'HAI', flag: '🇭🇹', rating: 62, confederation: 'CONCACAF' },
+  CUW: { name: 'Curaçao',         short: 'CUW', flag: '🇨🇼', rating: 60, confederation: 'CONCACAF' },
 
   // ── OFC ───────────────────────────────────────────────────────────────
   NZL: { name: 'Nova Zelândia',   short: 'NZL', flag: '🇳🇿', rating: 65, confederation: 'OFC' },
 };
 
 // ════════════════════════════════════════════════════════════════════════════
-// 🏆 GROUPS — 12 grupos da Copa 2026 (A → L), 4 seleções cada.
-//
-// O Grupo C é o oficial confirmado (Brasil/Marrocos/Escócia/Haiti).
-// Os demais são uma estimativa plausível: respeita pots por rating + regra
-// "no máximo 2 UEFA por grupo, sem duas seleções da mesma outra confederação".
-//
-// ⚠️ Não é o sorteio oficial palavra por palavra. Se quiser ajustar,
-//    edite as chaves aqui — `simulateOpponent` continua funcionando.
+// 🏆 GROUPS — sorteio OFICIAL da Copa do Mundo 2026 (FIFA, 5/dez/2025).
+//    Fonte: tabela divulgada pela FIFA, conferida em imagem do Nexo.
 // ════════════════════════════════════════════════════════════════════════════
 
 export const GROUPS = {
-  A: ['MEX', 'ITA', 'CMR', 'NZL'],
-  B: ['CAN', 'CRO', 'ECU', 'UZB'],
-  C: ['BRA', 'MAR', 'SCO', 'HAI'],
-  D: ['USA', 'URU', 'TUR', 'QAT'],
-  E: ['ARG', 'NOR', 'EGY', 'JOR'],
-  F: ['FRA', 'DEN', 'KOR', 'CPV'],
-  G: ['ENG', 'SUI', 'NGA', 'KSA'],
-  H: ['ESP', 'SRB', 'ALG', 'CRC'],
-  I: ['POR', 'AUT', 'IRN', 'PAR'],
-  J: ['NED', 'POL', 'CIV', 'BOL'],
-  K: ['GER', 'SEN', 'JPN', 'JAM'],
-  L: ['BEL', 'COL', 'TUN', 'AUS'],
+  A: ['MEX', 'RSA', 'KOR', 'CZE'],
+  B: ['CAN', 'BIH', 'QAT', 'SUI'],
+  C: ['BRA', 'MAR', 'HAI', 'SCO'],
+  D: ['USA', 'PAR', 'AUS', 'TUR'],
+  E: ['GER', 'CUW', 'CIV', 'ECU'],
+  F: ['NED', 'JPN', 'SWE', 'TUN'],
+  G: ['BEL', 'EGY', 'IRN', 'NZL'],
+  H: ['ESP', 'CPV', 'KSA', 'URU'],
+  I: ['FRA', 'SEN', 'IRQ', 'NOR'],
+  J: ['ARG', 'ALG', 'AUT', 'JOR'],
+  K: ['POR', 'COD', 'UZB', 'COL'],
+  L: ['ENG', 'CRO', 'GHA', 'PAN'],
 };
 
 // Helper: lista plana de todas as chaves de times.
