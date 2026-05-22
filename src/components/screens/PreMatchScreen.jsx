@@ -29,7 +29,7 @@ function ScoutRow({ icon: Icon, label, value }) {
   );
 }
 
-export default function PreMatchScreen({ match, opponent, matchIndex, total, onStart, stats, groupResults }) {
+export default function PreMatchScreen({ match, opponent, matchIndex, total, onStart, stats, groupResults, knockoutRounds }) {
   const [showGroups, setShowGroups] = useState(false);
   const tier = opponentTier(opponent.rating);
   const attrs = scoutAttributes(opponent.short, opponent.rating);
@@ -130,6 +130,7 @@ export default function PreMatchScreen({ match, opponent, matchIndex, total, onS
           onClose={() => setShowGroups(false)}
           highlightGroup="C"
           groupResults={groupResults}
+          knockoutRounds={knockoutRounds}
         />
       )}
     </div>

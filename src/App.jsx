@@ -15,9 +15,12 @@ import {
   opponentGoalRoll,
   simulateOpponent,
   simulateMatch,
+  simulateKnockoutRound,
+  pickOpponentFromPool,
   GROUP_FIXTURES,
   BRAZIL_GROUP_FIXTURES,
 } from './lib/simulation.js';
+import { calculateQualifiedTeams } from './lib/qualification.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // 🚀 ORQUESTRAÇÃO — máquina de estados raiz da jornada.
@@ -25,10 +28,36 @@ import {
 // ════════════════════════════════════════════════════════════════════════════
 
 const REVEAL_DELAY_MS = 1700;
-
 const emptyStats = { correct: 0, total: 0, wins: 0, goalsFor: 0, goalsAgainst: 0 };
-
 const DEFAULT_COACH = 'Carlo Ancelotti';
+
+// Labels das rodadas do mata-mata, na ordem em que aparecem no journey.
+// matchIndex 3 → R32, 4 → R16, 5 → QF, 6 → SF, 7 → F
+const KO_LABELS = ['R32', 'R16', 'QF', 'SF', 'F'];
+
+// ── Função pura: simula uma rodada da fase de grupos em todos os 12 grupos ──
+function computeGroupRound(round, brazilG, oppG, prevResults) {
+  const next = { ...prevResults };
+  for (const [letter, teamKeys] of Object.entries(GROUPS)) {
+    const fixtures = letter === 'C' ? BRAZIL_GROUP_FIXTURES[round] : GROUP_FIXTURES[round];
+    const games = fixtures.map(([i, j]) => {
+      const home = teamKeys[i];
+      const away = teamKeys[j];
+      if (letter === 'C' && (home === 'BRA' || away === 'BRA')) {
+        return {
+          home,
+          away,
+          homeGoals: home === 'BRA' ? brazilG : oppG,
+          awayGoals: away === 'BRA' ? brazilG : oppG,
+        };
+      }
+      const { goalsA, goalsB } = simulateMatch(TEAMS[home].rating, TEAMS[away].rating);
+      return { home, away, homeGoals: goalsA, awayGoals: goalsB };
+    });
+    next[letter] = [...(prevResults[letter] || []), games];
+  }
+  return next;
+}
 
 export default function App() {
   const [phase, setPhase] = useState('welcome');
@@ -41,27 +70,32 @@ export default function App() {
   // IDs de perguntas já usadas na campanha (não se repetem entre partidas)
   const [usedQuestionIds, setUsedQuestionIds] = useState(() => new Set());
 
-  // Resultados simulados das 3 rodadas da fase de grupos.
-  // Estrutura: { A: [round0, round1, round2], B: [...], ..., L: [...] }
-  // Cada round é um array de até 2 jogos { home, away, homeGoals, awayGoals }.
+  // Resultados simulados da fase de grupos. { A: [round0, round1, round2], ... }
   const [groupResults, setGroupResults] = useState({});
+
+  // Classificados após a fase de grupos (24 top-2 + 8 melhores 3ºs = 32 keys)
+  const [qualifiedTeams, setQualifiedTeams] = useState([]);
+
+  // Times ainda na competição. Encolhe a cada rodada do mata-mata.
+  const [tournamentPool, setTournamentPool] = useState([]);
+
+  // Resultados do mata-mata. { R32: [...], R16: [...], QF: [...], SF: [...], F: [...] }
+  const [knockoutRounds, setKnockoutRounds] = useState({});
 
   // Estado da partida atual
   const [questions, setQuestions]         = useState([]);
   const [currentQ, setCurrentQ]           = useState(0);
   const [brazilGoals, setBrazilGoals]     = useState(0);
   const [opponentGoals, setOpponentGoals] = useState(0);
-  const [lastAnswer, setLastAnswer]       = useState(null);    // 'goal' | 'chance' | 'wrong' | null
+  const [lastAnswer, setLastAnswer]       = useState(null);
   const [pendingChance, setPendingChance] = useState(false);
   const [correctCount, setCorrectCount]   = useState(0);
 
-  // Estatísticas acumuladas da campanha
   const [stats, setStats] = useState(emptyStats);
 
   const journey = JOURNEYS.brazil2026;
   const currentMatch = journey.matches[matchIndex];
 
-  // Resolve o time adversário do match atual (fixo ou simulado).
   const opponent = useMemo(() => {
     if (!currentMatch) return null;
     const key = currentMatch.simulated
@@ -71,26 +105,33 @@ export default function App() {
   }, [currentMatch, simulatedOpponents, matchIndex]);
 
   // ── Garante que o adversário simulado exista antes de entrar no preMatch ──
-  function ensureOpponent(idx) {
+  // Em mata-mata, escolhe do tournamentPool (sobreviventes); fora dele, usa
+  // o simulateOpponent padrão. `poolOverride` permite passar um pool recém
+  // calculado mas ainda não persistido em state.
+  function ensureOpponent(idx, poolOverride) {
     const m = journey.matches[idx];
     if (!m?.simulated || simulatedOpponents[idx]) return;
     const excluded = journey.matches
       .slice(0, idx)
       .map((mm, i) => (mm.simulated ? simulatedOpponents[i] : mm.teamKey))
       .filter(Boolean);
-    const picked = simulateOpponent(m.stage, excluded);
+
+    const pool = poolOverride !== undefined ? poolOverride : tournamentPool;
+    let picked;
+    if (idx >= 3 && pool.length > 0) {
+      picked = pickOpponentFromPool(pool, excluded) || simulateOpponent(m.stage, excluded);
+    } else {
+      picked = simulateOpponent(m.stage, excluded);
+    }
     setSimulatedOpponents((prev) => ({ ...prev, [idx]: picked }));
   }
 
   function startCampaign() {
-    ensureOpponent(0); // grupo — no-op (não é simulado), mas mantém simetria
+    ensureOpponent(0);
     setPhase('preMatch');
   }
 
   function startMatch() {
-    // Marca perguntas da partida anterior como usadas — garante que nenhuma
-    // pergunta se repita ao longo da campanha inteira (8 partidas × 5 = 40,
-    // bem dentro das 350 disponíveis).
     const newUsedIds = new Set(usedQuestionIds);
     questions.forEach((q) => newUsedIds.add(q.id));
     setUsedQuestionIds(newUsedIds);
@@ -105,33 +146,25 @@ export default function App() {
     setPhase('inMatch');
   }
 
-  // ── Processa a resposta do aluno ──────────────────────────────────────────
   function handleAnswer(selectedIndex) {
     const q = questions[currentQ];
     const isCorrect = selectedIndex === q.correct;
     const rating = opponent.rating;
 
-    // Snapshots dos placares pra computar o estado pós-resposta (evita stale)
     let nextBrazil   = brazilGoals;
     let nextOpponent = opponentGoals;
     let nextPending  = pendingChance;
     let nextCorrect  = correctCount;
-    let revealAs;    // 'goal' | 'chance' | 'wrong'
+    let revealAs;
 
     if (isCorrect) {
       nextCorrect += 1;
-
-      // Regra de gol: 1 acerto = no máximo 1 gol.
-      //   • Se há chance pendente: o acerto a converte em gol (sem nova roleta).
-      //   • Caso contrário: roda a roleta `resolveAnswer` → 'goal' ou 'chance'.
-      // Contra times fortes (mais 'chance'), 2 acertos são tipicamente
-      // necessários pra balançar a rede.
       if (pendingChance) {
         nextBrazil += 1;
         nextPending = false;
         revealAs = 'goal';
       } else {
-        const outcome = resolveAnswer(rating); // 'goal' | 'chance'
+        const outcome = resolveAnswer(rating);
         if (outcome === 'goal') {
           nextBrazil += 1;
           revealAs = 'goal';
@@ -141,7 +174,6 @@ export default function App() {
         }
       }
     } else {
-      // Erro: chance pendente some + adversário tenta marcar
       nextPending = false;
       if (opponentGoalRoll(rating)) {
         nextOpponent += 1;
@@ -172,13 +204,10 @@ export default function App() {
     }, REVEAL_DELAY_MS);
   }
 
-  // ── Encerra a partida, aplicando a regra 5/5 ──────────────────────────────
   function finishMatch(finalBrazil, finalOpponent, finalCorrect) {
     let brazil = finalBrazil;
     const opp  = finalOpponent;
 
-    // REGRA CRÍTICA: 100% de aproveitamento = vitória garantida.
-    // Se o aluno fez 5 acertos em 5, força placar de vitória mínima.
     if (finalCorrect === 5 && brazil <= opp) {
       brazil = opp + 1;
     }
@@ -190,7 +219,6 @@ export default function App() {
       setStats((s) => ({
         ...s,
         wins: s.wins + 1,
-        // Ajusta goalsFor se a regra 5/5 inflou o placar acima do simulado
         goalsFor: s.goalsFor + (brazil - finalBrazil),
       }));
     }
@@ -201,11 +229,43 @@ export default function App() {
   function nextMatch() {
     const justFinished = matchIndex;
 
-    // Se a partida que acabou foi da fase de grupos (índices 0, 1, 2),
-    // simula a rodada correspondente dos outros 11 grupos + grava o placar
-    // real do Brasil no Grupo C.
+    // Estado local pra encadear as transições síncronas (setState é async)
+    let newGroupResults = groupResults;
+    let newQualified    = qualifiedTeams;
+    let newPool         = tournamentPool;
+    let newKnockout     = knockoutRounds;
+
+    // Fase de grupos (matchIndex 0, 1, 2): simular as 2 outras partidas do
+    // próprio Grupo C (apenas Brasil tem placar real) + 22 jogos dos 11 grupos.
     if (justFinished <= 2) {
-      simulateGroupRound(justFinished, brazilGoals, opponentGoals);
+      newGroupResults = computeGroupRound(justFinished, brazilGoals, opponentGoals, newGroupResults);
+      setGroupResults(newGroupResults);
+    }
+
+    // Após R3 do Brasil → calcular classificados
+    if (justFinished === 2) {
+      newQualified = calculateQualifiedTeams(newGroupResults);
+      newPool = newQualified;
+      setQualifiedTeams(newQualified);
+      setTournamentPool(newPool);
+    }
+
+    // Mata-mata (matchIndex 3..7): simular os outros jogos da rodada
+    if (justFinished >= 3 && justFinished <= 7) {
+      const label = KO_LABELS[justFinished - 3];
+      const oppKey = simulatedOpponents[justFinished];
+      if (oppKey) {
+        const { games, survivors } = simulateKnockoutRound(
+          newPool,
+          oppKey,
+          brazilGoals,
+          opponentGoals,
+        );
+        newKnockout = { ...newKnockout, [label]: games };
+        newPool = survivors;
+        setKnockoutRounds(newKnockout);
+        setTournamentPool(newPool);
+      }
     }
 
     const next = justFinished + 1;
@@ -214,36 +274,8 @@ export default function App() {
       return;
     }
     setMatchIndex(next);
-    ensureOpponent(next);
+    ensureOpponent(next, newPool);
     setPhase('preMatch');
-  }
-
-  // Simula a rodada `round` (0, 1 ou 2) em todos os 12 grupos.
-  // O Grupo C usa o placar real do Brasil; os demais jogos são simulados.
-  function simulateGroupRound(round, brazilG, oppG) {
-    setGroupResults((prev) => {
-      const next = { ...prev };
-      for (const [letter, teamKeys] of Object.entries(GROUPS)) {
-        const fixtures = letter === 'C' ? BRAZIL_GROUP_FIXTURES[round] : GROUP_FIXTURES[round];
-        const games = fixtures.map(([i, j]) => {
-          const home = teamKeys[i];
-          const away = teamKeys[j];
-          // Jogo do Brasil — usar placar real
-          if (letter === 'C' && (home === 'BRA' || away === 'BRA')) {
-            return {
-              home,
-              away,
-              homeGoals: home === 'BRA' ? brazilG : oppG,
-              awayGoals: away === 'BRA' ? brazilG : oppG,
-            };
-          }
-          const { goalsA, goalsB } = simulateMatch(TEAMS[home].rating, TEAMS[away].rating);
-          return { home, away, homeGoals: goalsA, awayGoals: goalsB };
-        });
-        next[letter] = [...(prev[letter] || []), games];
-      }
-      return next;
-    });
   }
 
   function retryMatch() {
@@ -257,10 +289,12 @@ export default function App() {
     setUsedQuestionIds(new Set());
     setQuestions([]);
     setGroupResults({});
+    setQualifiedTeams([]);
+    setTournamentPool([]);
+    setKnockoutRounds({});
     setStats(emptyStats);
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
       <style>{STYLES_CSS}</style>
@@ -272,6 +306,7 @@ export default function App() {
           coachName={coachName}
           onCoachChange={(v) => setCoachName(v || DEFAULT_COACH)}
           groupResults={groupResults}
+          knockoutRounds={knockoutRounds}
         />
       )}
 
@@ -284,6 +319,7 @@ export default function App() {
           stats={stats}
           onStart={startMatch}
           groupResults={groupResults}
+          knockoutRounds={knockoutRounds}
         />
       )}
 

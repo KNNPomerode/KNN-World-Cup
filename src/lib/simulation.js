@@ -4,6 +4,15 @@
 
 import { TEAMS } from '../data/teams.js';
 
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 // ── Acerto do aluno → gol direto OU oportunidade ────────────────────────────
 //
 // Regra (baseada no rating do adversário):
@@ -188,3 +197,91 @@ export const BRAZIL_GROUP_FIXTURES = [
   [[0, 2], [1, 3]],
   [[0, 3], [1, 2]],
 ];
+
+// ── Mata-mata: simula uma rodada inteira ──────────────────────────────────
+//
+// pool: array de team keys ainda na competição.
+// brazilOpponentKey: já escolhido por simulateOpponent ANTES de chamar isto.
+// brazilG / brazilOpp: placar real do Brasil nessa rodada.
+//
+// Retorna { games, survivors }:
+//   games[0] é o jogo do Brasil; outros são pares aleatórios de não-Brasil.
+//   survivors são os vencedores que avançam para a próxima rodada.
+//
+// Empate no mata-mata → pênaltis. Vantagem leve pro time de rating maior.
+export function simulateKnockoutRound(pool, brazilOpponentKey, brazilG, brazilOpp) {
+  const cleanPool = [...new Set([...pool, 'BRA', brazilOpponentKey])];
+  const others = cleanPool.filter((k) => k !== 'BRA' && k !== brazilOpponentKey);
+  const shuffled = shuffle(others);
+
+  // Jogo do Brasil — placar real
+  const brazilGame = {
+    home: 'BRA',
+    away: brazilOpponentKey,
+    homeGoals: brazilG,
+    awayGoals: brazilOpp,
+    isBrazil: true,
+  };
+  const games = [brazilGame];
+  // Em mata-mata, empate na vida real iria pra prorrogação/pênaltis.
+  // No nosso jogo, o MatchEndScreen já obrigou um vencedor (REPLAY ou
+  // CONCEDE). Aqui é só consequência: se empata, Brasil avança por default
+  // (proteção; raríssimo de ocorrer dado o fluxo da campanha).
+  const brazilSurvived = brazilG >= brazilOpp ? 'BRA' : brazilOpponentKey;
+  const survivors = [brazilSurvived];
+
+  for (let i = 0; i + 1 < shuffled.length; i += 2) {
+    const home = shuffled[i];
+    const away = shuffled[i + 1];
+    const ratingH = TEAMS[home].rating;
+    const ratingA = TEAMS[away].rating;
+    const { goalsA: gH, goalsB: gA } = simulateMatch(ratingH, ratingA);
+
+    let penaltiesH, penaltiesA;
+    let winner;
+    if (gH === gA) {
+      const probHome = 0.5 + (ratingH - ratingA) * 0.01;
+      const homeWins = Math.random() < probHome;
+      if (homeWins) {
+        penaltiesH = 5;
+        penaltiesA = 3 + Math.floor(Math.random() * 2);
+        winner = home;
+      } else {
+        penaltiesH = 3 + Math.floor(Math.random() * 2);
+        penaltiesA = 5;
+        winner = away;
+      }
+    } else {
+      winner = gH > gA ? home : away;
+    }
+
+    games.push({
+      home,
+      away,
+      homeGoals: gH,
+      awayGoals: gA,
+      penaltiesHome: penaltiesH,
+      penaltiesAway: penaltiesA,
+    });
+    survivors.push(winner);
+  }
+
+  return { games, survivors };
+}
+
+// Escolhe um adversário do Brasil DENTRO de um pool dado (sobreviventes da
+// rodada anterior do mata-mata). Mantém o critério de ponderação por rating.
+export function pickOpponentFromPool(pool, excludeKeys = []) {
+  const exclude = new Set([...excludeKeys, 'BRA']);
+  const candidates = pool.filter((k) => !exclude.has(k) && TEAMS[k]);
+  if (candidates.length === 0) return null;
+
+  const weights = candidates.map((k) => TEAMS[k].rating);
+  const total = weights.reduce((a, b) => a + b, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < candidates.length; i++) {
+    roll -= weights[i];
+    if (roll <= 0) return candidates[i];
+  }
+  return candidates[candidates.length - 1];
+}

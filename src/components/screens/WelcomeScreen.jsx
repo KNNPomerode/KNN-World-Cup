@@ -3,7 +3,7 @@ import { ChevronRight, Volleyball, Table2 } from 'lucide-react';
 import Ticker from '../Ticker.jsx';
 import GroupsTable from '../GroupsTable.jsx';
 
-export default function WelcomeScreen({ onStart, journey, coachName, onCoachChange, groupResults }) {
+export default function WelcomeScreen({ onStart, journey, coachName, onCoachChange, groupResults, knockoutRounds }) {
   const [showGroups, setShowGroups] = useState(false);
 
   // Edição local pra permitir input vazio sem aplicar o default em cada keystroke
@@ -108,6 +108,7 @@ export default function WelcomeScreen({ onStart, journey, coachName, onCoachChan
           onClose={() => setShowGroups(false)}
           highlightGroup={journey.group}
           groupResults={groupResults}
+          knockoutRounds={knockoutRounds}
         />
       )}
     </div>

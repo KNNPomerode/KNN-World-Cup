@@ -1,6 +1,78 @@
-import { X } from 'lucide-react';
+import { X, Trophy } from 'lucide-react';
 import { GROUPS, TEAMS } from '../data/teams.js';
 import { calculateStandings } from '../lib/standings.js';
+
+const KO_TITLES = {
+  R32: '16-avos',
+  R16: 'Oitavas',
+  QF:  'Quartas',
+  SF:  'Semifinal',
+  F:   'Final',
+};
+const KO_ORDER = ['R32', 'R16', 'QF', 'SF', 'F'];
+
+function KnockoutGame({ game }) {
+  const home = TEAMS[game.home];
+  const away = TEAMS[game.away];
+  if (!home || !away) return null;
+  const isBrazil = game.isBrazil || game.home === 'BRA' || game.away === 'BRA';
+  const homeWon = game.homeGoals > game.awayGoals ||
+    (game.homeGoals === game.awayGoals && (game.penaltiesHome ?? 0) > (game.penaltiesAway ?? 0));
+  const pens = game.penaltiesHome != null
+    ? ` (${game.penaltiesHome}-${game.penaltiesAway} p)`
+    : '';
+
+  return (
+    <div
+      className={`border-2 border-stone-900 px-2 py-1 f-mono text-[11px] flex items-center justify-between gap-1 ${isBrazil ? 'bg-yellow-300' : 'bg-white/60'}`}
+    >
+      <span className="flex items-center gap-1 truncate">
+        <span className="text-sm select-none">{home.flag}</span>
+        <span className={homeWon ? 'font-black' : 'text-stone-500'}>{home.short}</span>
+      </span>
+      <span className="font-black whitespace-nowrap">
+        {game.homeGoals}–{game.awayGoals}{pens}
+      </span>
+      <span className="flex items-center gap-1 truncate justify-end">
+        <span className={!homeWon ? 'font-black' : 'text-stone-500'}>{away.short}</span>
+        <span className="text-sm select-none">{away.flag}</span>
+      </span>
+    </div>
+  );
+}
+
+function BracketSection({ knockoutRounds }) {
+  const hasAny = KO_ORDER.some((k) => (knockoutRounds || {})[k]?.length);
+  if (!hasAny) return null;
+
+  return (
+    <div className="border-t-2 border-stone-900">
+      <div className="px-6 py-2 border-b-2 border-stone-900 flex items-center gap-2" style={{ backgroundColor: '#1A1A1A', color: '#FFD500' }}>
+        <Trophy className="w-4 h-4" />
+        <span className="f-display text-xl">KNOCKOUT</span>
+        <span className="f-serif-i text-sm opacity-80">a partir das 16-avos</span>
+      </div>
+      <div className="p-4 space-y-3">
+        {KO_ORDER.map((roundKey) => {
+          const games = (knockoutRounds || {})[roundKey];
+          if (!games || games.length === 0) return null;
+          return (
+            <div key={roundKey}>
+              <div className="f-mono text-[10px] uppercase tracking-widest text-stone-700 mb-1">
+                {KO_TITLES[roundKey]} · {games.length} {games.length === 1 ? 'jogo' : 'jogos'}
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
+                {games.map((g, i) => (
+                  <KnockoutGame key={i} game={g} />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 function GroupCard({ letter, teamKeys, results, isHighlight }) {
   const hasGames = (results || []).some((r) => r && r.length > 0);
@@ -81,7 +153,7 @@ function GroupCard({ letter, teamKeys, results, isHighlight }) {
   );
 }
 
-export default function GroupsTable({ onClose, highlightGroup, groupResults }) {
+export default function GroupsTable({ onClose, highlightGroup, groupResults, knockoutRounds }) {
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center p-4 anim-fade-in"
@@ -123,8 +195,10 @@ export default function GroupsTable({ onClose, highlightGroup, groupResults }) {
           ))}
         </div>
 
+        <BracketSection knockoutRounds={knockoutRounds} />
+
         <div className="border-t border-stone-900/30 px-6 py-3 f-serif-i text-xs text-stone-600 text-center">
-          fundo verde = 2 melhores classificam direto · clique fora pra fechar
+          fundo verde = 2 melhores classificam direto · fundo amarelo no bracket = Brasil · clique fora pra fechar
         </div>
       </div>
     </div>
