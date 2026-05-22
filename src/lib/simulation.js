@@ -101,3 +101,90 @@ export function scoutAttributes(teamKey, rating) {
     grit:  clamp(rating + wiggle(3)),
   };
 }
+
+// ── Curva de probabilidade de vitória pela diferença de rating ─────────────
+//
+// Ancoras pedidas pelo usuário:
+//   diff   0  → 50%  (jogo parelho)
+//   diff  10 → 85%
+//   diff  20 → 93%
+//   diff  30+ → 99%
+//
+// Interpolação linear por seções (suave o suficiente, sem degraus bruscos).
+function probWinUnsigned(absDiff) {
+  if (absDiff >= 30) return 0.99;
+  if (absDiff >= 20) return 0.93 + (absDiff - 20) * (0.99 - 0.93) / 10;
+  if (absDiff >= 10) return 0.85 + (absDiff - 10) * (0.93 - 0.85) / 10;
+  return 0.50 + absDiff * (0.85 - 0.50) / 10;
+}
+
+// Probabilidades W/D/L da perspectiva do time A (signed diff = ratingA - ratingB).
+// Empate decai exponencialmente com |diff|: muito comum em jogos parelhos,
+// raro em jogos muito desequilibrados. Simétrico em diff=0.
+export function outcomeProbs(diff) {
+  const absDiff = Math.abs(diff);
+  const wStrong = probWinUnsigned(absDiff);  // prob do mais forte ganhar
+  let d = 0.22 * Math.exp(-absDiff / 15);
+  d = Math.min(d, 1 - wStrong);              // garante L >= 0
+  const lWeak = 1 - wStrong - d;
+  if (diff > 0) return { w: wStrong, d, l: lWeak };
+  if (diff < 0) return { w: lWeak,   d, l: wStrong };
+  // diff === 0: simétrico
+  return { w: (1 - d) / 2, d, l: (1 - d) / 2 };
+}
+
+// Placar plausível pra um resultado. Diferenças maiores tendem a goleadas.
+function generateScore(result, diff) {
+  if (result === 'D') {
+    const g = Math.floor(Math.random() * 3); // 0, 1 ou 2
+    return [g, g];
+  }
+  const strengthBonus = Math.min(2, Math.floor(Math.abs(diff) / 10));
+  const winnerGoals = 1 + Math.floor(Math.random() * (3 + strengthBonus));
+  const loserGoals = Math.floor(Math.random() * winnerGoals);
+  return result === 'W' ? [winnerGoals, loserGoals] : [loserGoals, winnerGoals];
+}
+
+// Simula uma partida e retorna { goalsA, goalsB }.
+export function simulateMatch(ratingA, ratingB) {
+  const diff = ratingA - ratingB;
+  const { w, d } = outcomeProbs(diff);
+  const roll = Math.random();
+  let result;
+  if (roll < w) result = 'W';
+  else if (roll < w + d) result = 'D';
+  else result = 'L';
+  const [goalsA, goalsB] = generateScore(result, diff);
+  return { goalsA, goalsB };
+}
+
+// ── Fixtures de grupo (3 rodadas, 2 jogos por rodada) ─────────────────────
+//
+// Padrão clássico:
+//   Rodada 0: [0]vs[1], [2]vs[3]
+//   Rodada 1: [0]vs[2], [1]vs[3]
+//   Rodada 2: [0]vs[3], [1]vs[2]
+//
+// No Grupo C, o time[0] é o Brasil, então:
+//   R0: BRA vs MAR (oficial)
+//   R1: BRA vs HAI (oficial — apesar de ser o time[2])
+//   R2: BRA vs SCO (oficial)
+//
+// Pra ficar consistente com a ordem real da jornada, o Grupo C usa fixtures
+// específicas (ver `BRAZIL_GROUP_FIXTURES`).
+export const GROUP_FIXTURES = [
+  [[0, 1], [2, 3]],
+  [[0, 2], [1, 3]],
+  [[0, 3], [1, 2]],
+];
+
+// No Grupo C, o Brasil joga MAR, HAI, SCO nessa ordem (matches.json).
+// As fixtures abaixo refletem isso: time[0]=BRA, time[1]=MAR, time[2]=HAI, time[3]=SCO.
+//   R0: BRA vs MAR, HAI vs SCO
+//   R1: BRA vs HAI, MAR vs SCO
+//   R2: BRA vs SCO, MAR vs HAI
+export const BRAZIL_GROUP_FIXTURES = [
+  [[0, 1], [2, 3]],
+  [[0, 2], [1, 3]],
+  [[0, 3], [1, 2]],
+];

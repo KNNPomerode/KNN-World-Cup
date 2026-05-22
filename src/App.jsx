@@ -8,9 +8,16 @@ import MatchEndScreen from './components/screens/MatchEndScreen.jsx';
 import TrophyScreen   from './components/screens/TrophyScreen.jsx';
 
 import { JOURNEYS } from './data/journey.js';
-import { TEAMS }    from './data/teams.js';
+import { TEAMS, GROUPS } from './data/teams.js';
 import { pickQuestions } from './lib/match.js';
-import { resolveAnswer, opponentGoalRoll, simulateOpponent } from './lib/simulation.js';
+import {
+  resolveAnswer,
+  opponentGoalRoll,
+  simulateOpponent,
+  simulateMatch,
+  GROUP_FIXTURES,
+  BRAZIL_GROUP_FIXTURES,
+} from './lib/simulation.js';
 
 // ════════════════════════════════════════════════════════════════════════════
 // 🚀 ORQUESTRAÇÃO — máquina de estados raiz da jornada.
@@ -33,6 +40,11 @@ export default function App() {
 
   // IDs de perguntas já usadas na campanha (não se repetem entre partidas)
   const [usedQuestionIds, setUsedQuestionIds] = useState(() => new Set());
+
+  // Resultados simulados das 3 rodadas da fase de grupos.
+  // Estrutura: { A: [round0, round1, round2], B: [...], ..., L: [...] }
+  // Cada round é um array de até 2 jogos { home, away, homeGoals, awayGoals }.
+  const [groupResults, setGroupResults] = useState({});
 
   // Estado da partida atual
   const [questions, setQuestions]         = useState([]);
@@ -187,7 +199,16 @@ export default function App() {
   }
 
   function nextMatch() {
-    const next = matchIndex + 1;
+    const justFinished = matchIndex;
+
+    // Se a partida que acabou foi da fase de grupos (índices 0, 1, 2),
+    // simula a rodada correspondente dos outros 11 grupos + grava o placar
+    // real do Brasil no Grupo C.
+    if (justFinished <= 2) {
+      simulateGroupRound(justFinished, brazilGoals, opponentGoals);
+    }
+
+    const next = justFinished + 1;
     if (next >= journey.matches.length) {
       setPhase('trophy');
       return;
@@ -195,6 +216,34 @@ export default function App() {
     setMatchIndex(next);
     ensureOpponent(next);
     setPhase('preMatch');
+  }
+
+  // Simula a rodada `round` (0, 1 ou 2) em todos os 12 grupos.
+  // O Grupo C usa o placar real do Brasil; os demais jogos são simulados.
+  function simulateGroupRound(round, brazilG, oppG) {
+    setGroupResults((prev) => {
+      const next = { ...prev };
+      for (const [letter, teamKeys] of Object.entries(GROUPS)) {
+        const fixtures = letter === 'C' ? BRAZIL_GROUP_FIXTURES[round] : GROUP_FIXTURES[round];
+        const games = fixtures.map(([i, j]) => {
+          const home = teamKeys[i];
+          const away = teamKeys[j];
+          // Jogo do Brasil — usar placar real
+          if (letter === 'C' && (home === 'BRA' || away === 'BRA')) {
+            return {
+              home,
+              away,
+              homeGoals: home === 'BRA' ? brazilG : oppG,
+              awayGoals: away === 'BRA' ? brazilG : oppG,
+            };
+          }
+          const { goalsA, goalsB } = simulateMatch(TEAMS[home].rating, TEAMS[away].rating);
+          return { home, away, homeGoals: goalsA, awayGoals: goalsB };
+        });
+        next[letter] = [...(prev[letter] || []), games];
+      }
+      return next;
+    });
   }
 
   function retryMatch() {
@@ -207,6 +256,7 @@ export default function App() {
     setSimulatedOpponents({});
     setUsedQuestionIds(new Set());
     setQuestions([]);
+    setGroupResults({});
     setStats(emptyStats);
   }
 
@@ -221,6 +271,7 @@ export default function App() {
           journey={journey}
           coachName={coachName}
           onCoachChange={(v) => setCoachName(v || DEFAULT_COACH)}
+          groupResults={groupResults}
         />
       )}
 
@@ -232,6 +283,7 @@ export default function App() {
           total={journey.matches.length}
           stats={stats}
           onStart={startMatch}
+          groupResults={groupResults}
         />
       )}
 

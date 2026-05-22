@@ -1,5 +1,7 @@
-import { ChevronRight, Activity, Gauge, Shield } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronRight, Activity, Gauge, Shield, Table2 } from 'lucide-react';
 import ProgramHeader from '../ProgramHeader.jsx';
+import GroupsTable from '../GroupsTable.jsx';
 import { opponentTier, scoutAttributes } from '../../lib/simulation.js';
 
 function ScoutBar({ value }) {
@@ -27,7 +29,8 @@ function ScoutRow({ icon: Icon, label, value }) {
   );
 }
 
-export default function PreMatchScreen({ match, opponent, matchIndex, total, onStart, stats }) {
+export default function PreMatchScreen({ match, opponent, matchIndex, total, onStart, stats, groupResults }) {
+  const [showGroups, setShowGroups] = useState(false);
   const tier = opponentTier(opponent.rating);
   const attrs = scoutAttributes(opponent.short, opponent.rating);
 
@@ -104,7 +107,7 @@ export default function PreMatchScreen({ match, opponent, matchIndex, total, onS
           </div>
         </div>
 
-        <div className="text-center mt-10 anim-slide-up stagger-5">
+        <div className="text-center mt-10 anim-slide-up stagger-5 flex flex-col items-center gap-3">
           <button
             onClick={onStart}
             className="group inline-flex items-center gap-3 px-8 py-4 border-2 border-stone-900 bg-stone-900 text-white hover:bg-stone-800 transition"
@@ -112,8 +115,23 @@ export default function PreMatchScreen({ match, opponent, matchIndex, total, onS
             <span className="f-display text-2xl">ENTER THE PITCH</span>
             <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition" />
           </button>
+          <button
+            onClick={() => setShowGroups(true)}
+            className="inline-flex items-center gap-2 px-5 py-2 border-2 border-stone-900 hover:bg-stone-900 hover:text-white transition"
+          >
+            <Table2 className="w-4 h-4" />
+            <span className="f-mono text-xs uppercase tracking-widest font-bold">ver tabela dos grupos</span>
+          </button>
         </div>
       </div>
+
+      {showGroups && (
+        <GroupsTable
+          onClose={() => setShowGroups(false)}
+          highlightGroup="C"
+          groupResults={groupResults}
+        />
+      )}
     </div>
   );
 }
